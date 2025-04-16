@@ -3,7 +3,7 @@ from counterfit_connection import CounterFitConnection
 CounterFitConnection.init('127.0.0.1', 5000)
 import time
 import counterfit_shims_serial
-from simple_gps_decoder import decode_gps
+from gps_decoder import decode_gps
 
 serial = counterfit_shims_serial.Serial('/dev/ttyAMA0')
 
