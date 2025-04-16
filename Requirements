@@ -1,1 +1,7 @@
-pip install counterfit, counterfit-connection, Werkzeug==2.1.2, Flask==2.1.2, pip install nmea2, counterfit-shims-serial
+counterfit
+counterfit-connection
+counterfit-shims-serial
+Werkzeug==2.1.2
+Flask==2.1.2
+nmea2
+
