@@ -1,29 +1,59 @@
-# decode_gps.py
-from counterfit_connection import CounterFitConnection
-CounterFitConnection.init('127.0.0.1', 5000)
+# simple_gps_decoder.py
 
-import counterfit_shims_serial
-import pynmea2
-import time
-
-serial = counterfit_shims_serial.Serial('/dev/ttyAMA0')
-
-def decode_gps_data(line):
+def decode_gps(nmea_sentence):
+    # Check if it's a GGA sentence (contains the info we want)
+    if not nmea_sentence.startswith('$GPGGA') and not nmea_sentence.startswith('$GNGGA'):
+        return None
+    
+    # Split the sentence into parts
+    parts = nmea_sentence.split(',')
+    
+    # Initialize result
+    result = {
+        'latitude': None,
+        'longitude': None,
+        'satellites': None
+    }
+    
     try:
-        msg = pynmea2.parse(line)
-        if isinstance(msg, pynmea2.types.talker.GGA):  # GPS fix data
-            print(f"Time: {msg.timestamp}, Lat: {msg.latitude} {msg.lat_dir}, Lon: {msg.longitude} {msg.lon_dir}, Satellites: {msg.num_sats}")
-        elif isinstance(msg, pynmea2.types.talker.RMC):  # Recommended Minimum Navigation Information
-            print(f"Time: {msg.timestamp}, Status: {msg.status}, Lat: {msg.latitude}, Lon: {msg.longitude}, Speed: {msg.spd_over_grnd}")
-        else:
-            print("Parsed:", msg)
-    except pynmea2.ParseError:
-        print("Could not parse line:", line.rstrip())
-
-print("Decoder running...")
-
-while True:
-    line = serial.readline().decode('utf-8').strip()
-    if line:
-        decode_gps_data(line)
-    time.sleep(0.1)
+        # Extract latitude (format: DDMM.MMMMM)
+        if len(parts) > 2 and parts[2] and parts[3]:
+            lat_dm = float(parts[2])
+            lat_direction = parts[3]
+            
+            # Convert to decimal degrees
+            lat_deg = int(lat_dm / 100)
+            lat_min = lat_dm - (lat_deg * 100)
+            latitude = lat_deg + (lat_min / 60)
+            
+            # Apply direction
+            if lat_direction == 'S':
+                latitude = -latitude
+                
+            result['latitude'] = latitude
+        
+        # Extract longitude (format: DDDMM.MMMMM)
+        if len(parts) > 4 and parts[4] and parts[5]:
+            lon_dm = float(parts[4])
+            lon_direction = parts[5]
+            
+            # Convert to decimal degrees
+            lon_deg = int(lon_dm / 100)
+            lon_min = lon_dm - (lon_deg * 100)
+            longitude = lon_deg + (lon_min / 60)
+            
+            # Apply direction
+            if lon_direction == 'W':
+                longitude = -longitude
+                
+            result['longitude'] = longitude
+        
+        # Extract number of satellites
+        if len(parts) > 7 and parts[7]:
+            result['satellites'] = int(parts[7])
+            
+    except (ValueError, IndexError):
+        # If parsing fails, return what we have so far
+        pass
+    
+    return result
